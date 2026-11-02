@@ -1,0 +1,102 @@
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from tensorflow.keras import layers, Model
+
+# Load MNIST Dataset
+df = pd.read_csv("mnist_784_csv.csv")
+
+X = df.drop("class", axis=1).values.astype("float32") / 255.0
+
+# Split Dataset
+x_train, x_test = train_test_split(
+    X, test_size=0.2, random_state=42
+)
+
+# Add Noise to Images
+noise_factor = 0.3
+rng = np.random.default_rng(42)
+
+x_train_noisy = np.clip(
+    x_train + noise_factor * rng.normal(size=x_train.shape), 0, 1
+)
+
+x_test_noisy = np.clip(
+    x_test + noise_factor * rng.normal(size=x_test.shape), 0, 1
+)
+
+# Display Noisy Images
+plt.figure(figsize=(12, 3))
+for i in range(10):
+    plt.subplot(1, 10, i+1)
+    plt.imshow(x_train_noisy[i].reshape(28, 28), cmap="gray")
+    plt.axis("off")
+plt.show()
+
+# Build Autoencoder
+input_img = layers.Input(shape=(784,))
+
+encoded = layers.Dense(128, activation="relu")(input_img)
+encoded = layers.Dense(64, activation="relu")(encoded)
+
+decoded = layers.Dense(128, activation="relu")(encoded)
+decoded = layers.Dense(784, activation="sigmoid")(decoded)
+
+autoencoder = Model(input_img, decoded)
+
+autoencoder.compile(
+    optimizer="adam",
+    loss="binary_crossentropy"
+)
+
+# Train Autoencoder
+history = autoencoder.fit(
+    x_train_noisy,
+    x_train,
+    epochs=10,
+    batch_size=256,
+    shuffle=True,
+    validation_data=(x_test_noisy, x_test)
+)
+
+# Plot Training Loss
+plt.plot(history.history["loss"], label="Training Loss")
+plt.plot(history.history["val_loss"], label="Validation Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.title("Autoencoder Training Loss")
+plt.legend()
+plt.show()
+
+# Denoise Images
+denoised = autoencoder.predict(x_test_noisy[:10])
+
+print("Denoising completed successfully!")
+
+# Display Original, Noisy and Denoised Images
+plt.figure(figsize=(15, 5))
+
+for i in range(10):
+    plt.subplot(3, 10, i+1)
+    plt.imshow(x_test[i].reshape(28, 28), cmap="gray")
+    plt.axis("off")
+    if i == 0:
+        plt.ylabel("Original")
+
+    plt.subplot(3, 10, i+11)
+    plt.imshow(x_test_noisy[i].reshape(28, 28), cmap="gray")
+    plt.axis("off")
+    if i == 0:
+        plt.ylabel("Noisy")
+
+    plt.subplot(3, 10, i+21)
+    plt.imshow(denoised[i].reshape(28, 28), cmap="gray")
+    plt.axis("off")
+    if i == 0:
+        plt.ylabel("Denoised")
+
+plt.tight_layout()
+plt.show()
