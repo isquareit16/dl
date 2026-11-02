@@ -1,0 +1,41 @@
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import tensorflow as tf
+
+from tensorflow.keras.layers import Input, Dense
+from tensorflow.keras.models import Model
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.regularizers import l1
+
+df = pd.read_csv("mnist_784_csv.csv")
+X = df.drop("class", axis=1).values.astype("float32") / 255.0
+x_train, x_test = train_test_split(X, test_size=0.2, random_state=42)
+
+input_img = Input(shape=(784,))
+encoded = Dense(64,activation="relu",activity_regularizer=l1(0.001))(input_img)
+decoded = Dense(784, activation="sigmoid")(encoded)
+autoencoder = Model(input_img, decoded)
+
+autoencoder.compile(optimizer="adam",loss="binary_crossentropy")
+history = autoencoder.fit(x_train, x_train,epochs=5,batch_size=256,shuffle=True,validation_data=(x_test, x_test))
+
+reconstructed = autoencoder.predict(x_test[:10])
+
+plt.figure(figsize=(15, 4))
+
+for i in range(10):
+    # Original Image
+    plt.subplot(2, 10, i + 1)
+    plt.imshow(x_test[i].reshape(28, 28), cmap="gray")
+    plt.axis("off")
+
+    # Reconstructed Image
+    plt.subplot(2, 10, i + 11)
+    plt.imshow(reconstructed[i].reshape(28, 28), cmap="gray")
+    plt.axis("off")
+
+plt.show()
+
+print("Sparse Autoencoder implemented successfully!")
