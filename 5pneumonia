@@ -1,0 +1,97 @@
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Input, Dense, MaxPooling2D, Flatten, Conv2D
+from sklearn.metrics import confusion_matrix, classification_report
+
+base = r"C:\Users\siddh\Downloads\Pneumonia X Ray-20221031T100017Z-001\Pneumonia X Ray"
+
+datagen = ImageDataGenerator(rescale=1./255)
+
+train_data = datagen.flow_from_directory(
+    base + "/train",
+    target_size=(128,128),
+    batch_size=32,
+    class_mode="binary"
+)
+
+test_data = datagen.flow_from_directory(
+    base + "/test",
+    target_size=(128,128),
+    batch_size=32,
+    class_mode="binary",
+    shuffle=False
+)
+
+val_data = datagen.flow_from_directory(
+    base + "/val",
+    target_size=(128,128),
+    batch_size=32,
+    class_mode="binary"
+)
+
+model = Sequential([
+    Input(shape=(128,128,3)),
+    Conv2D(32,(3,3),activation='relu'),
+    MaxPooling2D(),
+    Conv2D(32,(3,3),activation='relu'),
+    MaxPooling2D(),
+    Flatten(),
+    Dense(64,activation='relu'),
+    Dense(1,activation='sigmoid')
+])
+
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+
+history = model.fit(
+    train_data,
+    epochs=5,
+    validation_data=val_data
+)
+
+loss, acc = model.evaluate(test_data)
+print("Test Accuracy:", acc)
+
+y_pred = (model.predict(test_data) > 0.5).astype(int).ravel()
+y_true = test_data.classes
+
+print("Confusion Matrix:")
+print(confusion_matrix(y_true, y_pred))
+
+print("Classification Report:")
+print(classification_report(
+    y_true,
+    y_pred,
+    target_names=["NORMAL", "PNEUMONIA"]
+))
+
+plt.plot(history.history["accuracy"], label="Training Accuracy")
+plt.plot(history.history["val_accuracy"], label="Validation Accuracy")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.title("CNN Model Accuracy")
+plt.legend()
+plt.show()
+
+i = 0
+
+images, labels = next(iter(test_data))
+predictions = model.predict(images, verbose=0)
+
+pred = "PNEUMONIA" if predictions[i][0] > 0.5 else "NORMAL"
+actual = "PNEUMONIA" if labels[i] == 1 else "NORMAL"
+
+print("Actual:", actual)
+print("Predicted:", pred)
+
+plt.imshow(images[i].astype("uint8"))
+plt.title(f"Actual: {actual} | Predicted: {pred}")
+plt.axis('off')
+plt.show()
