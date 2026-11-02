@@ -1,0 +1,83 @@
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, Lambda, Dense
+
+# 1. Sample Text
+text = "the cat sits on the mat the cat eats food"
+
+# 2. Tokenization
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts([text])
+
+word_index = tokenizer.word_index
+vocab_size = len(word_index) + 1
+
+sequence = tokenizer.texts_to_sequences([text])[0]
+
+print("Word Index:", word_index)
+print("Vocabulary Size:", vocab_size)
+print("Word Sequence:", sequence)
+
+# 3. Generate CBOW Training Data
+window_size = 2
+X = []
+y = []
+
+for i in range(window_size, len(sequence) - window_size):
+    context = sequence[i-window_size:i] + sequence[i+1:i+window_size+1]
+    target = sequence[i]
+    X.append(context)
+    y.append(target)
+
+X = np.array(X)
+y = np.array(y)
+
+print("\nContext Words:\n", X)
+print("Target Words:\n", y)
+
+# 4. Build CBOW Model
+model = Sequential([
+    Embedding(vocab_size, 10),
+    Lambda(lambda x: tf.reduce_mean(x, axis=1)),
+    Dense(vocab_size, activation="softmax")
+])
+
+model.build(input_shape=(None, 4))
+
+model.compile(
+    optimizer="adam",
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
+
+model.summary()
+
+# 5. Train Model
+model.fit(X, y, epochs=100, verbose=0)
+
+print("\nCBOW Model Training Completed!")
+
+# 6. Predict Target Word
+context_words = ["the", "cat", "on", "the"]
+
+context = [word_index[w] for w in context_words]
+
+prediction = model.predict(
+    np.array([context]), verbose=0
+)
+
+predicted_id = np.argmax(prediction)
+
+# 7. Convert Predicted ID into Word
+predicted_word = None
+
+for word, index in word_index.items():
+    if index == predicted_id:
+        predicted_word = word
+        break
+
+print("\nContext Words:", context_words)
+print("Predicted Target Word:", predicted_word)
