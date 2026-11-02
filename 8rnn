@@ -1,0 +1,62 @@
+
+import numpy as np
+
+# RNN: Recurrent Neural Network using NumPy
+np.random.seed(42)
+
+# Define layer sizes
+input_size = 2
+hidden_size = 3
+output_size = 2
+
+# Initialize weights
+Wxh = np.random.randn(hidden_size, input_size) * 0.1
+Whh = np.random.randn(hidden_size, hidden_size) * 0.1
+Why = np.random.randn(output_size, hidden_size) * 0.1
+
+# Initialize biases
+bh = np.zeros((hidden_size, 1))
+by = np.zeros((output_size, 1))
+
+# Softmax activation function
+def softmax(x):
+    exp_x = np.exp(x - np.max(x))
+    return exp_x / np.sum(exp_x)
+
+# RNN Forward Pass
+def rnn_forward(inputs):
+    h = np.zeros((hidden_size, 1))
+
+    for t, x in enumerate(inputs):
+        x = x.reshape(input_size, 1)
+
+        h = np.tanh(
+            np.dot(Wxh, x) +
+            np.dot(Whh, h) + bh
+        )
+
+        print("Hidden state at time step", t + 1)
+        print(h)
+
+    y = np.dot(Why, h) + by
+    output = softmax(y)
+
+    return output
+
+# Sample input sequence
+inputs = np.array([
+    [1, 0],
+    [0, 1],
+    [1, 1]
+])
+
+# Execute RNN
+output = rnn_forward(inputs)
+
+# Display results
+print("\nFinal Output Probabilities:")
+print(output)
+
+print("Predicted Class:", np.argmax(output))
+
+print("\nRNN Forward Pass Implemented Successfully!")
