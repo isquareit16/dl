@@ -1,0 +1,55 @@
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Input
+from sklearn.model_selection import train_test_split
+
+df = pd.read_csv("mnist_784_csv.csv")
+
+X = df.iloc[:, :-1].values
+y = df.iloc[:, -1].values
+
+print("Dataset shape:", X.shape)
+print("Labels shape:", y.shape)
+
+X = X / 255.0
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+model = Sequential([
+    Input(shape=(784,)),
+    Dense(128, activation='relu'),
+    Dense(10, activation='softmax')
+])
+
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+model.fit(X_train, y_train, epochs=5, batch_size=32)
+
+loss, accuracy = model.evaluate(X_test, y_test)
+
+print("Test Loss:", loss)
+print("Test Accuracy:", accuracy * 100, "%")
+
+i = 1
+
+prediction = model.predict(X_test[i:i+1], verbose=0)
+
+predicted_class = np.argmax(prediction)
+
+print("Actual Output:", y_test[i])
+print("Predicted Output:", predicted_class)
+
+plt.imshow(X_test[i].reshape(28, 28), cmap='gray')
+plt.title(f"Actual: {y_test[i]} | Predicted: {predicted_class}")
+plt.axis('off')
+plt.show()
