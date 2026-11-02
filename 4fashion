@@ -1,0 +1,69 @@
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
+
+from tensorflow.keras.layers import Input, Dense, MaxPooling2D, Flatten, Conv2D
+from tensorflow.keras.models import Sequential
+
+train_data = pd.read_csv("fashion-mnist_train.csv")
+test_data = pd.read_csv("fashion-mnist_test.csv")
+
+print(train_data.head())
+
+x_train = train_data.drop("label", axis=1).values
+y_train = train_data["label"].values
+
+x_test = test_data.drop("label", axis=1).values
+y_test = test_data["label"].values
+
+x_train = x_train / 255.0
+x_test = x_test / 255.0
+
+x_train = x_train.reshape(-1, 28, 28, 1)
+x_test = x_test.reshape(-1, 28, 28, 1)
+
+model = Sequential([
+    Input(shape=(28, 28, 1)),
+    Conv2D(32, (3, 3), activation='relu'),
+    MaxPooling2D((2, 2)),
+    Flatten(),
+    Dense(64, activation='relu'),
+    Dense(10, activation='softmax')
+])
+
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+history = model.fit(
+    x_train,
+    y_train,
+    epochs=5,
+    batch_size=32,
+    validation_split=0.1
+)
+
+loss, acc = model.evaluate(x_test, y_test)
+
+print("Test Loss:", loss)
+print("Test Accuracy:", acc * 100, "%")
+
+classes = [
+    'T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
+    'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot'
+]
+
+i = 0
+
+predicted = model.predict(x_test, verbose=0)
+pred = np.argmax(predicted[i])
+
+print("Actual:", classes[y_test[i]])
+print("Predicted:", classes[pred])
+
+plt.imshow(x_test[i].reshape(28, 28), cmap='gray')
+plt.axis("off")
+plt.show()
